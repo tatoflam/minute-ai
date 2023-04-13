@@ -3,11 +3,11 @@
 - Transcribes audio spoken in any language
 - Outputs a summary of that language and any translated language in markdown format.  
 
-This tool uses: 
+This tool does: 
 
-- ffmpeg for converting input file into `mp3` (as it's relatively smaller than the other formats) and splitting it into appropriate sized chunk to send to whisper API
-- whisper text-to-speech API (`whisper-1`) to detect original language spoken and make a transcript. 
-- Chat API (`gpt-3.5-turbo`) to summarize the transcript into a meeting note in the markdown format and translate it into the other language provided. 
+- convert input file into `mp3` (as it's relatively smaller than the other formats) and splitting it into appropriate sized chunk to send to whisper API by `ffmpeg`
+- detect original language spoken and make a transcript by whisper text-to-speech API (`whisper-1`)
+- summarize the transcript into a meeting note in the markdown format and translate it into the other language provided by `gpt-3.5-turbo`
 
 ## Usage
 
@@ -93,4 +93,14 @@ Nevertheless, you should not upload your personal information or confidential in
 
 ## References
 
-- [OpenAI Speech to Text](https://platform.openai.com/docs/guides/speech-to-text)
+- [OpenAI | Speech to Text](https://platform.openai.com/docs/guides/speech-to-text)
+- [OpenAI | Production Best Practice](https://platform.openai.com/docs/guides/production-best-practices/)
+
+## What's next?
+
+### TODO:
+
+- Check audio file size and judge if it's necessary to convert format and splitting
+- Experiment `gpt-4`
+
+and more.
