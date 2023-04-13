@@ -1,0 +1,5 @@
+summary_system_content = "You are a helpful assistant."
+summary_user_content = "Create a structured summaries of the meeting transcript provided in the original language using markdown format. Organize the summary into distinct topics and ensure all important information is included in concise sentences. Transcript: '{transcript}'."
+translation_system_content = "You are a helpful translator."
+translation_user_content = "Create a translated version for the '{summary} in '{lang}' language using markdown format. Maintain the same topic structure and content."
+continue_content = "Continue generating text while taking into account the token limit constraints for Chat GPT."

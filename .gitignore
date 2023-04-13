@@ -2,3 +2,6 @@ data/*
 !data/.keep
 key
 env
+.python-version
+sample.py
+__pycache__
