@@ -31,7 +31,7 @@ Export Open AI API Key with the name "OPENAI_API_KEY" to your environment
 run command `./minutes.sh -f "Audio file name" -l "language code"`
 
 - -f: Audio file
-- -l: (Optional) Language to be translated (language code in [ISO-639-1]() format)
+- -l: (Optional) Language to be translated (language code in [ISO-639-1](https://www.loc.gov/standards/iso639-2/php/code_list.php) format). 
 
 For example, 
 
