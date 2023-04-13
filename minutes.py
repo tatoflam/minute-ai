@@ -10,16 +10,19 @@ from api import transcribe_files, summarize, translate, continue_prompt, \
 
 def get_arguments():
     parser =  argparse.ArgumentParser(description='Transcribe audio file, summarize it (and translate the summary in provided language)')
-    parser.add_argument('--do_transcribe', type=str, help='y if doing transcribe')
-    parser.add_argument('--script_file', type=str, help='script file name')
-    parser.add_argument('--files', nargs='+', type=str, help='Input audio files')
-    parser.add_argument('--lang', type=str, help='Language in ISO-639-1 language code')
+    parser.add_argument('--script_file', type=str, help='script file name',
+                        required=True)
+    parser.add_argument('--files', nargs='*', type=str, default=None, help='Input audio files')
+    parser.add_argument('--org_lang', type=str, help='Language in original audio in ISO-639-1 language code')
+    parser.add_argument('--lang', type=str, help='Translated Language in ISO-639-1 language code')    
     parser.add_argument('--length', type=float, help='Length in minutes of the input audio file')    
+    parser.add_argument('--do_transcribe', type=str, help='y if doing transcribe')
+
     args = parser.parse_args()
     return args
     
-def main(do_transcribe, script_file, filenames, org_lang, 
-         translate_lang=None, length=None):
+def main(script_file, filenames, org_lang=None,  
+         translate_lang=None, length=None, do_transcribe="y"):
 
     # Transcribe
     print("\nTranscribing..." )
@@ -166,13 +169,13 @@ if __name__ == "__main__":
                     print(f"File '{filename}' does not exist.")
                     sys.exit(1)
         else:
-            org_lang = "en" 
+            org_lang = args.org_lang
         
         script_file = args.script_file
         translate_lang = args.lang
         length = args.length
          
-        main(do_transcribe, script_file, filenames, org_lang, translate_lang, length)
+        main(script_file, filenames, org_lang, translate_lang, length, do_transcribe)
     else:
         print("ERROR: Please check the configuration.")
         sys.exit(1)

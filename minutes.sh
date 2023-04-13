@@ -70,9 +70,11 @@ do
     case $opt in
         f)
             file="$OPTARG"
+            echo "Option -f $file"
             ;;
         l)
             translate_lang="$OPTARG"
+            echo "Option -l $translate_lang"
             ;;
         *)
             echo -e "Usage: $0 -f <audio file> -l <Optional: language to translate in ISO-693-1 code>\n $0 -f input.m4a -l ja"
@@ -85,17 +87,19 @@ do
     esac
 done
 
-echo "Option -f $file"
-echo "Option -l $translate_lang"
-
-if [ ! -f "$file" ]; then
-    echo "File '$file' does not exist."
+if [ -n "$file" ]; then
+    if [ ! -f "$file" ]; then
+        echo "File '$file' does not exist."
+        exit 1
+    fi
+else
+    echo "Option -f <Audio file name> is required"
     exit 1
 fi
 
 script_file="${file%.*}.txt"
 if [ -f "$script_file" ]; then
-    read -p "File '$script_file' exists. Are you sure to create MP3 files? [y/N]" do_transcribe
+    read -p "File '$script_file' exists. Are you sure to transcribe Audio file? [y/N]" do_transcribe
 fi
 
 if [ "$do_transcribe" == "y" ]; then
@@ -118,17 +122,17 @@ source env/bin/activate
 if [ "$translate_lang" != "" ]; then
     echo "translated_lang" "$translate_lang"
     python minutes.py \
-        --do_transcribe "$do_transcribe" \
         --script_file "$script_file" \
         --lang "$translate_lang" \
         --files "${segmented_files[@]}" \
-        --length "${length}"
+        --length "${length}" \
+        --do_transcribe "$do_transcribe" 
 else
     python minutes.py \
-        --do_transcribe "$do_transcribe" \
         --script_file "$script_file" \
         --files "${segmented_files[@]}" \
-        --length "${length}"
+        --length "${length}" \
+        --do_transcribe "$do_transcribe" 
 fi
 
 # Delete temporal files

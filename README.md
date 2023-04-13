@@ -1,6 +1,7 @@
-# minutes.sh
+# minutes-ai
 
-Transcribes audio spoken in any language and outputs a summary of that language and any translated language in markdown format.  
+- Transcribes audio spoken in any language
+- Outputs a summary of that language and any translated language in markdown format.  
 
 This tool uses: 
 
@@ -30,7 +31,7 @@ Export Open AI API Key with the name "OPENAI_API_KEY" to your environment
 
 run command `./minutes.sh -f "Audio file name" -l "language code"`
 
-- -f: Audio file
+- -f: Input file (Audio or text file)
 - -l: (Optional) Language to be translated (language code in [ISO-639-1](https://www.loc.gov/standards/iso639-2/php/code_list.php) format). 
 
 For example, 
@@ -38,7 +39,7 @@ For example,
 If you want to make transcript and summary, also include the translation in Japanese language, 
 
 ```
-./whisper.sh -f ./data/audiofile.m4a -l ja
+./minute.sh -f ./data/audiofile.m4a -l ja
 ```
 
 If you do not need the translation for the summary, 
@@ -47,7 +48,13 @@ If you do not need the translation for the summary,
 ./whisper.sh -f ./data/audiofile.m4a -l ja
 ```
 
-After completion, you will find a transcript , summaries in the original language and its translation. `.txt` and `.md` files are written in the same directory of the input audio file. 
+If you already have a transcript in text format, you can just summarize and translate it by: 
+
+```
+./minute.sh -f ./data/transcript.txt -l ja
+```
+
+After completion, you will find a transcript in `.txt` file, and summaries in the original language and its translation in `.md` files in the same directory of the input file. 
 
 ## Install
 
