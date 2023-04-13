@@ -45,7 +45,7 @@ If you want to make transcript and summary, also include the translation in Japa
 If you do not need the translation for the summary, 
 
 ```
-./whisper.sh -f ./data/audiofile.m4a -l ja
+./whisper.sh -f ./data/audiofile.m4a
 ```
 
 If you already have a transcript in text format, you can just summarize and translate it by: 
