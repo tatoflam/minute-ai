@@ -39,19 +39,19 @@ For example,
 If you want to make transcript and summary, also include the translation in Japanese language, 
 
 ```
-./minute.sh -f ./data/audiofile.m4a -l ja
+./minutes.sh -f ./data/audiofile.m4a -l ja
 ```
 
 If you do not need the translation for the summary, 
 
 ```
-./whisper.sh -f ./data/audiofile.m4a
+./minutes.sh -f ./data/audiofile.m4a
 ```
 
 If you already have a transcript in text format, you can just summarize and translate it by: 
 
 ```
-./minute.sh -f ./data/transcript.txt -l ja
+./minutes.sh -f ./data/transcript.txt -l ja
 ```
 
 After completion, you will find a transcript in `.txt` file, and summaries in the original language and its translation in `.md` files in the same directory of the input file. 
