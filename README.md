@@ -78,12 +78,14 @@ Install requirements on the virtual environment.
 
 ## Security
 
+For transcribing, summarizing or translation, this tool call OpenAI API and pass content to the platform.  
+
 As per OpenAI [API data usage policies](https://openai.com/policies/api-data-usage-policies) updated on March 1 2023, 
 
 - OpenAI will not use data submitted by customers via our API to train or improve our models, unless you explicitly decide to share your data with us for this purpose. You can opt-in to share data.
 - Any data sent through the API will be retained for abuse and misuse monitoring purposes for a maximum of 30 days, after which it will be deleted (unless otherwise required by law). 
 
-Nevertheless, you should not upload your personal information or confidential information.  
+However, please be careful when using this tool with content that contains your personal or confidential information. 
 
 ## Environments (I confirmed)
 
