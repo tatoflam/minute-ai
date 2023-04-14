@@ -54,6 +54,8 @@ If you already have a transcript in text format, you can just summarize and tran
 ./minutes.sh -f ./data/transcript.txt -l ja
 ```
 
+You may need to input y or N to user prompt from the tool or ffmpeg by on running shell command. 
+
 After completion, you will find a transcript in `.txt` file, and summaries in the original language and its translation in `.md` files in the same directory of the input file. 
 
 ## Install

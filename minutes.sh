@@ -1,9 +1,11 @@
 #!/bin/bash
 
+start=$(date +%s) 
 # Initialize variables
 short_audio_file="./data/temp_short.mp3"
 file=""
 script_file=""
+do_transcribe="y"
 translate_lang=""
 length=0
 
@@ -118,22 +120,19 @@ fi
 
 source env/bin/activate
 
-# Pass all MP3 filenames to the Python script
-if [ "$translate_lang" != "" ]; then
-    echo "translated_lang" "$translate_lang"
-    python minutes.py \
-        --script_file "$script_file" \
-        --lang "$translate_lang" \
-        --files "${segmented_files[@]}" \
-        --length "${length}" \
-        --do_transcribe "$do_transcribe" 
-else
-    python minutes.py \
-        --script_file "$script_file" \
-        --files "${segmented_files[@]}" \
-        --length "${length}" \
-        --do_transcribe "$do_transcribe" 
-fi
+python minutes.py \
+    --script_file "$script_file" \
+    --lang "$translate_lang" \
+    --files "${segmented_files[@]}" \
+    --length "${length}" \
+    --do_transcribe "$do_transcribe" 
+
+deactivate
 
 # Delete temporal files
 remove_temporal_files "${segmented_files[@]}"
+
+end=$(date +%s)
+duration=$(echo "($end - $start) / 60" | bc -l)
+duration=$(printf "%.2f" $duration)
+echo "minute.sh completed in $duration minutes!"

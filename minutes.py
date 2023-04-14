@@ -13,10 +13,10 @@ def get_arguments():
     parser.add_argument('--script_file', type=str, help='script file name',
                         required=True)
     parser.add_argument('--files', nargs='*', type=str, default=None, help='Input audio files')
-    parser.add_argument('--org_lang', type=str, help='Language in original audio in ISO-639-1 language code')
-    parser.add_argument('--lang', type=str, help='Translated Language in ISO-639-1 language code')    
-    parser.add_argument('--length', type=float, help='Length in minutes of the input audio file')    
-    parser.add_argument('--do_transcribe', type=str, help='y if doing transcribe')
+    parser.add_argument('--org_lang', type=str, default=None, help='Language in original audio in ISO-639-1 language code')
+    parser.add_argument('--lang', type=str, default=None, help='Translated Language in ISO-639-1 language code')    
+    parser.add_argument('--length', type=float, default=None, help='Length in minutes of the input audio file')    
+    parser.add_argument('--do_transcribe', type=str, default=None, help='y if doing transcribe')
 
     args = parser.parse_args()
     return args
@@ -83,8 +83,8 @@ def main(script_file, filenames, org_lang=None,
         file.write(summary_response)
 
     # Translate    
-    if not translate_lang is None:
-        print("\nTranslating summary..." )
+    if not ((translate_lang is None) or (translate_lang == "")):
+        print(f"\nTranslating summary to '{translate_lang}'..." )
         translation = translate(summary_response, translate_lang)
         print(f"\n--- Minutes summary translation in '{translate_lang}'---" )
         
@@ -131,7 +131,7 @@ def main(script_file, filenames, org_lang=None,
     print("\n--- Usage: Summary ---")
     print(summary["usage"])
 
-    if not translate_lang is None:
+    if not ((translate_lang is None) or (translate_lang == "")):
         print("\n--- Usage: Translation ---")
         print(translation["usage"])
         
