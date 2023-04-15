@@ -1,7 +1,7 @@
 import argparse
 import sys
 import os
-from util import detect_lang
+from util import detect_lang_by_whisper, detect_lang_by_langdetect
 from constants import openai_api_key_name, whisper_pricing_per_min, \
     gpt_pricing_per_1k_token
 from api import transcribe_files, summarize, translate, continue_prompt, \
@@ -45,7 +45,7 @@ def main(script_file, filenames, org_lang=None,
     tokens = 0
         
     # Summarize
-    print("\nSummarizing..." )
+    print(f"\nSummarizing in the original language {org_lang}..." )
     summary = summarize(transcripts, org_lang)
     
     print("\n--- Minutes summary ---" )
@@ -158,10 +158,13 @@ if __name__ == "__main__":
 
         do_transcribe = args.do_transcribe
         filenames = args.files
+        script_file = args.script_file
+        translate_lang = args.lang
+        length = args.length
         
         if do_transcribe == "y":
             # detect original language from the audio file
-            org_lang = detect_lang()
+            org_lang = detect_lang_by_whisper()
                     
             # Check if the files exist
             for filename in filenames:
@@ -169,11 +172,8 @@ if __name__ == "__main__":
                     print(f"File '{filename}' does not exist.")
                     sys.exit(1)
         else:
-            org_lang = args.org_lang
-        
-        script_file = args.script_file
-        translate_lang = args.lang
-        length = args.length
+            # detect original language from the existing transcript    
+            org_lang = detect_lang_by_langdetect(script_file)
          
         main(script_file, filenames, org_lang, translate_lang, length, do_transcribe)
     else:

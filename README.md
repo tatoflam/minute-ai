@@ -64,12 +64,20 @@ After completion, you will find a transcript in `.txt` file, and summaries in th
 
 - python3
 - ffmpeg
+- any terminal environment for executing bash and python script
+  - Mac: Terminal.app
+  - Windows: Git Bash (bundled in Git for Windows)
 
 Create python virtual environment and activate it.
 
 ```
 python -m venv env
+
+# Mac
 source env/bin/activate
+
+# Windows
+source env/Scripts/activate
 ```
 
 Install requirements on the virtual environment.  

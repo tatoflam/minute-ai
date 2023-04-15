@@ -118,7 +118,12 @@ if [ "$do_transcribe" == "y" ]; then
     done
 fi
 
-source env/bin/activate
+if [ $(uname -s) == "Darwin" ]||[ $(uname -s) == "Linux" ]; then
+    # Mac or Linux
+    source env/bin/activate
+else
+    source env/Scripts/activate
+fi
 
 python minutes.py \
     --script_file "$script_file" \

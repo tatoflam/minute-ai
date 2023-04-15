@@ -2,11 +2,26 @@ import os
 import openai
 
 from prompt import summary_system_content, summary_user_content, \
-    translation_system_content, translation_user_content, continue_content
+    translation_system_content, translation_user_content, continue_content, \
+    chat_detect_lang_content
 from constants import gpt_model, whisper_model, openai_api_key_name
 
 def set_key():
     openai.api_key = os.environ.get(openai_api_key_name)
+
+def detect_lang(text):
+    print(f"Detecting language by chat completion...")
+    detected_lang = openai.ChatCompletion.create(
+        model=gpt_model,
+        messages=[
+            {"role": "system", "content": summary_system_content},
+            {"role": "user", 
+             "content": chat_detect_lang_content.format(text=text)
+             }
+            # {"role": "assistant", "content": ""}
+        ]
+    )
+    return detected_lang    
 
 def transcribe(filename, org_lang):
     print(f"Processing file: {filename}")
