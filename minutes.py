@@ -46,7 +46,7 @@ def main(script_file, filenames, org_lang=None,
         
     # Summarize
     print("\nSummarizing..." )
-    summary = summarize(transcripts)
+    summary = summarize(transcripts, org_lang)
     
     print("\n--- Minutes summary ---" )
     summary_response = str()

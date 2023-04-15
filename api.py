@@ -30,13 +30,16 @@ def transcribe_files(script_file, filenames, org_lang):
         
     return transcripts
                 
-def summarize(transcript):
+def summarize(transcript, org_lang=None):
     summary = openai.ChatCompletion.create(
         model=gpt_model,
         messages=[
             {"role": "system", "content": summary_system_content},
             {"role": "user", 
-             "content": summary_user_content.format(transcript=transcript)}
+             "content": summary_user_content.format(
+                 org_lang=org_lang, transcript=transcript
+                 )
+             }
             # {"role": "assistant", "content": ""}
         ]
     )
