@@ -104,6 +104,7 @@ However, please be careful when using this tool with content that contains your 
 
 ### TODO:
 
+- Handling openai.error.InvalidRequest (the model's maximu context length: 4097 tokens)
 - Check audio file size and judge if it's necessary to convert format and splitting
 - Experiment `gpt-4`
 
