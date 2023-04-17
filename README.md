@@ -42,7 +42,7 @@ If you want to make transcript and summary, also include the translation in Japa
 ./minutes.sh -f ./data/audio_file.m4a -l ja
 ```
 
-You can transcribe video file too.  
+You can transcribe audio in a video file too.  
 
 ```
 ./minutes.sh -f ./data/video_file.mp4 -l ja
@@ -68,8 +68,8 @@ After completion, you will find a transcript in `.txt` file, and summaries in th
 
 ### Pre-requisite
 
-- python3
-- ffmpeg
+- [python3](https://www.python.org/)
+- [ffmpeg](https://ffmpeg.org/)
 - any terminal environment for executing bash and python script
   - Mac: Terminal.app
   - Windows: Git Bash (bundled in Git for Windows)
