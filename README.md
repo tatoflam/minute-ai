@@ -5,9 +5,9 @@
 
 This tool does: 
 
-- convert input file into `mp3` (as it's relatively smaller than the other formats) and splitting it into appropriate sized chunk to send to whisper API by `ffmpeg`
-- detect original language spoken and make a transcript by whisper text-to-speech API (`whisper-1`)
-- summarize the transcript into a meeting note in the markdown format and translate it into the other language provided by `gpt-3.5-turbo`
+- convert input audio or video files into `mp3` (as it's relatively smaller audio format) and split it into appropriate sized chunk to send to whisper API by [ffmpeg](https://ffmpeg.org/)
+- detect original language spoken by [OpenAI-Whisper](https://github.com/openai/whisper) and make a transcript by OpenAI [OpenAI speech-to-text(Whisper API)](https://platform.openai.com/docs/guides/speech-to-text) (`whisper-1`)
+- summarize the transcript into a meeting note in the markdown format and translate it into the other language provided by [OpenAI Chat Completion (Chat API)](https://platform.openai.com/docs/guides/chat) (`gpt-3.5-turbo`)
 
 ## Usage
 
@@ -29,9 +29,9 @@ Export Open AI API Key with the name "OPENAI_API_KEY" to your environment
 
 ### Run it! 
 
-run command `./minutes.sh -f "Audio file name" -l "language code"`
+run command `./minutes.sh -f "input file name" -l "language code"`
 
-- -f: Input file (Audio or text file)
+- -f: Input file (Audio, video, or text file)
 - -l: (Optional) Language to be translated (language code in [ISO-639-1](https://www.loc.gov/standards/iso639-2/php/code_list.php) format). 
 
 For example, 
@@ -39,13 +39,19 @@ For example,
 If you want to make transcript and summary, also include the translation in Japanese language, 
 
 ```
-./minutes.sh -f ./data/audiofile.m4a -l ja
+./minutes.sh -f ./data/audio_file.m4a -l ja
+```
+
+You can transcribe video file too.  
+
+```
+./minutes.sh -f ./data/video_file.mp4 -l ja
 ```
 
 If you do not need the translation for the summary, 
 
 ```
-./minutes.sh -f ./data/audiofile.m4a
+./minutes.sh -f ./data/audio_file.m4a
 ```
 
 If you already have a transcript in text format, you can just summarize and translate it by: 
@@ -112,8 +118,6 @@ However, please be careful when using this tool with content that contains your 
 
 ### TODO:
 
-- Handling openai.error.InvalidRequest (the model's maximu context length: 4097 tokens)
-- Check audio file size and judge if it's necessary to convert format and splitting
 - Experiment `gpt-4`
 
 and more.
