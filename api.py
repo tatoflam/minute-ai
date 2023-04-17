@@ -2,7 +2,8 @@ import os
 import openai
 
 from prompt import summary_system_content, summary_user_content, \
-    translation_system_content, translation_user_content, continue_content, \
+    summary_chunks_user_content, translation_system_content, \
+    translation_user_content, continue_content, \
     chat_detect_lang_content
 from constants import gpt_model, whisper_model, openai_api_key_name
 
@@ -45,7 +46,7 @@ def transcribe_files(script_file, filenames, org_lang):
         
     return transcripts
                 
-def summarize(transcript, org_lang=None):
+def summarize_chunk(transcript, org_lang=None):
     summary = openai.ChatCompletion.create(
         model=gpt_model,
         messages=[
@@ -59,6 +60,41 @@ def summarize(transcript, org_lang=None):
         ]
     )
     return summary
+
+def summarize_chunks(transcript, i, total, summary=None, org_lang=None):
+    summary = openai.ChatCompletion.create(
+        model=gpt_model,
+        messages=[
+            {"role": "system", "content": summary_system_content},
+            {"role": "user", 
+             "content": summary_chunks_user_content.format(
+                 org_lang=org_lang, transcript=transcript, i=i, total=total,
+                 summary=summary
+                 )
+             }
+            # {"role": "assistant", "content": ""}
+        ]
+    )
+    return summary
+
+def summarize(transcripts, org_lang=None):
+    num_chunks = len(transcripts)
+    api_token_counted = 0
+    if num_chunks == 1:
+        transcript = transcripts[0]
+        summary = summarize_chunk(transcript, org_lang)
+        api_token_counted = summary["usage"]["total_tokens"]
+    else:
+        summary = ""
+        for i in range(num_chunks):
+            print(f"--- summarizing chunk: '{i}' ---")
+            # print(transcripts[i])
+            summary = summarize_chunks(transcripts[i], i, num_chunks, 
+                                       summary, org_lang)
+            api_token_counted += summary["usage"]["total_tokens"]
+            print(summary)
+    print(f"Summary: API token counted: {api_token_counted}")
+    return summary, api_token_counted
 
 def continue_prompt():
     response = openai.ChatCompletion.create(

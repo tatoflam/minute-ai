@@ -1,7 +1,9 @@
 import os
+import math
 import whisper
 from constants import temp_short_mp3
 from langdetect import detect, lang_detect_exception
+import tiktoken
 
 iso639_1_langs = ['aa', 'ab', 'af', 'am', 'ar', 'as', 'ay', 'az', 'ba', 'be', 'bg', 'bh', 'bi', 'bn', 'bo', 'br', 'ca', 'co', 'cs', 'cy', 'da', 'de', 'dz', 'el', 'en', 'eo', 'es', 'et', 'eu', 'fa', 'fi', 'fj', 'fo', 'fr', 'fy', 'ga', 'gd', 'gl', 'gn', 'gu', 'ha', 'hi', 'hr', 'hu', 'hy', 'ia', 'ie', 'ik', 'in', 'is', 'it', 'iw', 'ja', 'ji', 'jw', 'ka', 'kk', 'kl', 'km', 'kn', 'ko', 'ks', 'ku', 'ky', 'la', 'ln', 'lo', 'lt', 'lv', 'mg', 'mi', 'mk', 'ml', 'mn', 'mo', 'mr', 'ms', 'mt', 'my', 'na', 'ne', 'nl', 'no', 'oc', 'om', 'or', 'pa', 'pl', 'ps', 'pt', 'qu', 'rm', 'rn', 'ro', 'ru', 'rw', 'sa', 'sd', 'sg', 'sh', 'si', 'sk', 'sl', 'sm', 'sn', 'so', 'sq', 'sr', 'ss', 'st', 'su', 'sv', 'sw', 'ta', 'te', 'tg', 'th', 'ti', 'tk', 'tl', 'tn', 'to', 'tr', 'ts', 'tt', 'tw', 'uk', 'ur', 'uz', 'vi', 'vo', 'wo', 'xh', 'yi', 'yo', 'za', 'zh', 'zu']
 
@@ -62,3 +64,30 @@ def detect_lang_by_langdetect(script_file):
     detected_lang = detect_lang_code(short_text)
     print(f"detected_lang: {detected_lang}")
     return detected_lang
+
+def tokenize(model_name, text):
+
+    encoding = tiktoken.encoding_for_model(model_name)
+    tokens = encoding.encode(text)
+    tokens_count = len(tokens)
+
+    # print(f"Number of tokens in the transcript: {tokens_count}")
+    return tokens, tokens_count
+
+def split_transcript(model_name, tokens, max_token_length):
+    
+    encoding = tiktoken.encoding_for_model(model_name)
+
+    start_pos = 0
+    end_pos = max_token_length
+    
+    num_chunk = math.ceil(len(tokens) / max_token_length)
+    transcripts = []
+    
+    for _ in range(num_chunk):
+        splitted_transcript = encoding.decode(tokens[start_pos:end_pos])
+        transcripts.append(splitted_transcript)
+        start_pos = end_pos
+        end_pos = end_pos + max_token_length
+    
+    return transcripts

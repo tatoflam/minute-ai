@@ -1,11 +1,13 @@
 import argparse
 import sys
 import os
-from util import detect_lang_by_whisper, detect_lang_by_langdetect
+from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
+    tokenize, split_transcript, detect_lang_code
 from constants import openai_api_key_name, whisper_pricing_per_min, \
-    gpt_pricing_per_1k_token
+    gpt_pricing_per_1k_token, gpt_model, max_token_length, token_overhead
 from api import transcribe_files, summarize, translate, continue_prompt, \
-    set_key
+    set_key, translate
+from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
 
 def get_arguments():
@@ -26,31 +28,44 @@ def main(script_file, filenames, org_lang=None,
 
     # Transcribe
     print("\nTranscribing..." )
-    transcripts = str()
+    transcript = str()
     if os.path.exists(script_file):
         # Do below in the shell script
         # do_transcribe = input(f"{script_file} exists. Are you sure to transcribe the audio file? [y/N] ")
 
         if do_transcribe == "y":
-            transcripts = transcribe_files(script_file, filenames, org_lang)
+            transcript = transcribe_files(script_file, filenames, org_lang)
         else:
-            print("Reading from the existing text transcripts.")
+            print("Reading from the existing text transcript.")
             with open(script_file, "r") as file:
-                transcripts = file.read()
+                transcript = file.read()
     else:
-        transcripts = transcribe_files(script_file, filenames, org_lang)
+        transcript = transcribe_files(script_file, filenames, org_lang)
         
-    print(f"--- Entire script ---\n'{transcripts}'" )
-
-    tokens = 0
-        
+    print(f"--- Entire script ---\n'{transcript}'" )
+    
+    # Count num tokens from entire transcript
+    tokens, tokens_counted = tokenize(gpt_model ,transcript)
+    _, longest_prompt_token_counted = tokenize(
+        gpt_model, summary_chunks_user_content)
+    print(f"--- Token counted: {tokens_counted} ---")
+    
+    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
+        splitted_token_count = max_token_length - \
+            longest_prompt_token_counted - token_overhead
+        transcripts = split_transcript(
+            gpt_model, tokens, splitted_token_count
+            )
+    else:
+        transcripts = [transcript]
+    
     # Summarize
+    api_tokens_counted = 0
     print(f"\nSummarizing in the original language {org_lang}..." )
-    summary = summarize(transcripts, org_lang)
+    summary, api_tokens_counted = summarize(transcripts, org_lang)
     
     print("\n--- Minutes summary ---" )
     summary_response = str()
-    tokens += summary["usage"]["total_tokens"]
     
     for i, choice in enumerate(summary["choices"]):
         print(f"--- choice: {i} ---")
@@ -70,12 +85,16 @@ def main(script_file, filenames, org_lang=None,
 
                 continue_usage = continue_prompt()["usage"]
                 print(continue_usage)
-                tokens += continue_usage["total_tokens"]
+                api_tokens_counted += continue_usage["total_tokens"]
  
                 finish_reason = continue_choice["finish_reason"]                               
                 print(f"Continued summary finish reason: '{finish_reason}'")
                 if finish_reason=="stop":
                     break
+    
+    if detect_lang_code(summary_response) != org_lang:
+        summary_response = translate(summary_response, org_lang)
+                
     print(summary_response)
     
     t_name, _ = os.path.splitext(script_file)
@@ -89,7 +108,7 @@ def main(script_file, filenames, org_lang=None,
         print(f"\n--- Minutes summary translation in '{translate_lang}'---" )
         
         translate_response = str()
-        tokens += translation["usage"]["total_tokens"]
+        api_tokens_counted += translation["usage"]["total_tokens"]
 
         for i, choice in enumerate(translation["choices"]):
             print(f"--- choice: {i} ---")
@@ -109,7 +128,7 @@ def main(script_file, filenames, org_lang=None,
 
                     continue_usage = continue_prompt()["usage"]
                     print(continue_usage)
-                    tokens += continue_usage["total_tokens"]
+                    api_tokens_counted += continue_usage["total_tokens"]
     
                     finish_reason = continue_choice["finish_reason"]                               
                     print(f"Continued summary finish reason: '{finish_reason}'")
@@ -136,8 +155,8 @@ def main(script_file, filenames, org_lang=None,
         print(translation["usage"])
         
     print("\n--- Usage: Total ---")
-    amount = tokens / 1000 * gpt_pricing_per_1k_token
-    print(f"For GPT, {amount:.3f} USD for {tokens} tokens in total * {gpt_pricing_per_1k_token} USD/min")
+    amount = api_tokens_counted / 1000 * gpt_pricing_per_1k_token
+    print(f"For GPT, {amount:.3f} USD for {api_tokens_counted} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
     amount = amount + whisper_amount
     print(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
 
