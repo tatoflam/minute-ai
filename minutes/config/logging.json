@@ -1,0 +1,51 @@
+{
+    "version": 1,
+    "disable_existing_loggers": false,
+    "root": {
+      "level": "DEBUG",
+      "handlers": [
+        "consoleHandler",
+        "logFileHandler"
+      ]
+    },
+    "minutes": {
+      "level": "DEBUG",
+      "handlers": [
+        "consoleHandler",
+        "logFileHandler"
+      ],
+      "propagate": false
+    },
+    "openai": {
+      "level": "DEBUG",
+      "handlers": [
+        "logFileHandler"
+      ],
+      "propagate": false
+  },
+    "handlers": {
+      "consoleHandler": {
+        "class": "logging.StreamHandler",
+        "level": "INFO",
+        "formatter": "consoleFormatter",
+        "stream": "ext://sys.stdout"
+      },
+      "logFileHandler": {
+        "class": "logging.handlers.TimedRotatingFileHandler",
+        "level": "DEBUG",
+        "formatter": "logFileFormatter",
+        "filename": "log/minutes-ai.log",
+        "when" : "MIDNIGHT",
+        "backupCount": 7,
+        "encoding": "utf-8"
+      }
+    },
+    "formatters": {
+      "consoleFormatter": {
+        "format": "%(message)s"
+      },
+      "logFileFormatter": {
+        "format": "%(asctime)s %(thread)d %(levelname)s %(name)s %(funcName)s %(lineno)d %(message)s"
+      }
+    }
+}

@@ -1,14 +1,32 @@
+import json
 import argparse
-import sys
 import os
+import sys
+from logging import config, getLogger
+
 from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
     tokenize, split_transcript, detect_lang_code
-from constants import openai_api_key_name, whisper_pricing_per_min, \
-    gpt_pricing_per_1k_token, gpt_model, max_token_length, token_overhead
+from constants import logging_conf, openai_api_key_name, gpt_model, \
+    whisper_pricing_per_min, gpt_pricing_per_1k_token,  max_token_length, \
+    token_overhead
 from api import transcribe_files, summarize, translate, continue_prompt, \
     set_key, translate
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
+
+config_dict = None
+with open(logging_conf, 'r', encoding='utf-8') as f:
+    config_dict = json.load(f)
+
+config.dictConfig(config_dict)
+logger = getLogger(__name__)
+
+def add_module_path():
+    # Add the "python_modules" directory to the Python path
+    base_dir = os.path.dirname(__file__)
+    # modules_dir = os.path.join(base_dir, "python_modules")
+    if base_dir not in sys.path:
+        sys.path.append(base_dir)
 
 def get_arguments():
     parser =  argparse.ArgumentParser(description='Transcribe audio file, summarize it (and translate the summary in provided language)')
@@ -27,7 +45,7 @@ def main(script_file, filenames, org_lang=None,
          translate_lang=None, length=None, do_transcribe="y"):
 
     # Transcribe
-    print("\nTranscribing..." )
+    logger.info("\nTranscribing..." )
     transcript = str()
     if os.path.exists(script_file):
         # Do below in the shell script
@@ -36,19 +54,19 @@ def main(script_file, filenames, org_lang=None,
         if do_transcribe == "y":
             transcript = transcribe_files(script_file, filenames, org_lang)
         else:
-            print("Reading from the existing text transcript.")
+            logger.info("Reading from the existing text transcript.")
             with open(script_file, "r") as file:
                 transcript = file.read()
     else:
         transcript = transcribe_files(script_file, filenames, org_lang)
         
-    print(f"--- Entire script ---\n'{transcript}'" )
+    logger.info(f"--- Entire script ---\n'{transcript}'" )
     
     # Count num tokens from entire transcript
     tokens, tokens_counted = tokenize(gpt_model ,transcript)
     _, longest_prompt_token_counted = tokenize(
         gpt_model, summary_chunks_user_content)
-    print(f"--- Token counted: {tokens_counted} ---")
+    logger.info(f"--- Token counted: {tokens_counted} ---")
     
     if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
         splitted_token_count = max_token_length - \
@@ -61,41 +79,47 @@ def main(script_file, filenames, org_lang=None,
     
     # Summarize
     api_tokens_counted = 0
-    print(f"\nSummarizing in the original language {org_lang}..." )
+    logger.info(f"\nSummarizing in the original language {org_lang}..." )
     summary, api_tokens_counted = summarize(transcripts, org_lang)
     
-    print("\n--- Minutes summary ---" )
+    logger.info("\n--- Minutes summary ---" )
     summary_response = str()
     
     for i, choice in enumerate(summary["choices"]):
-        print(f"--- choice: {i} ---")
+        logger.info(f"--- choice: {i} ---")
         
         finish_reason = choice["finish_reason"]
         summary_response += choice["message"]["content"]
-
+        if not isinstance(summary_response, str):
+            logger.debug("String content was not responded")
+            summary_response = str(summary_response)
+        
         # Check finish_response
-        print(f"summary finish_reason: '{finish_reason}'")
+        logger.info(f"summary finish_reason: '{finish_reason}'")
         if finish_reason == "stop":
             pass
         else:
-            print("Continuing prompt...")
+            logger.info("Continuing prompt...")
             while True:
                 continue_choice = continue_prompt()["choice"][0]                
                 summary_response += continue_choice["message"]["content"]
+                if not isinstance(summary_response, str):
+                    logger.debug("String content was not responded")
+                    summary_response = str(summary_response)
 
                 continue_usage = continue_prompt()["usage"]
-                print(continue_usage)
+                logger.info(continue_usage)
                 api_tokens_counted += continue_usage["total_tokens"]
  
                 finish_reason = continue_choice["finish_reason"]                               
-                print(f"Continued summary finish reason: '{finish_reason}'")
+                logger.info(f"Continued summary finish reason: '{finish_reason}'")
                 if finish_reason=="stop":
                     break
     
     if detect_lang_code(summary_response) != org_lang:
         summary_response = translate(summary_response, org_lang)
                 
-    print(summary_response)
+    logger.info(summary_response)
     
     t_name, _ = os.path.splitext(script_file)
     with open(f"{t_name}.md", "w") as file:
@@ -103,71 +127,72 @@ def main(script_file, filenames, org_lang=None,
 
     # Translate    
     if not ((translate_lang is None) or (translate_lang == "")):
-        print(f"\nTranslating summary to '{translate_lang}'..." )
+        logger.info(f"\nTranslating summary to '{translate_lang}'..." )
         translation = translate(summary_response, translate_lang)
-        print(f"\n--- Minutes summary translation in '{translate_lang}'---" )
+        logger.info(f"\n--- Minutes summary translation in '{translate_lang}'---" )
         
         translate_response = str()
         api_tokens_counted += translation["usage"]["total_tokens"]
 
         for i, choice in enumerate(translation["choices"]):
-            print(f"--- choice: {i} ---")
+            logger.info(f"--- choice: {i} ---")
         
             finish_reason = choice["finish_reason"]
             translate_response += choice["message"]["content"]
             
             # Check finish_response
-            print(f"translate finish_reason: '{finish_reason}'")
+            logger.info(f"translate finish_reason: '{finish_reason}'")
             if finish_reason == "stop":
                 pass
             else:
-                print("Continuing prompt...")
+                logger.info("Continuing prompt...")
                 while True:                      
                     continue_choice = continue_prompt()["choice"][0]                
                     translate_response += continue_choice["message"]["content"]
 
                     continue_usage = continue_prompt()["usage"]
-                    print(continue_usage)
+                    logger.info(continue_usage)
                     api_tokens_counted += continue_usage["total_tokens"]
     
                     finish_reason = continue_choice["finish_reason"]                               
-                    print(f"Continued summary finish reason: '{finish_reason}'")
+                    logger.info(f"Continued summary finish reason: '{finish_reason}'")
                     if finish_reason=="stop":
                         break
 
-        print(translate_response)
+        logger.info(translate_response)
         with open(f"{t_name}_{translate_lang}.md", "w") as file:
             file.write(translate_response)
 
-    print("\n--- Usage  -----------------")
+    logger.info("\n--- Usage  -----------------")
     amount = 0
     whisper_amount = 0
-    print("\n--- Usage: Transcription ---")
+    logger.info("\n--- Usage: Transcription ---")
     if not length is None: 
         whisper_amount = (length * whisper_pricing_per_min)        
-        print(f"For whisper, '{whisper_amount:.3f}' USD for '{length:.2f}' minutes * '{whisper_pricing_per_min}' USD/min")
+        logger.info(f"For whisper, '{whisper_amount:.3f}' USD for '{length:.2f}' minutes * '{whisper_pricing_per_min}' USD/min")
     
-    print("\n--- Usage: Summary ---")
-    print(summary["usage"])
+    logger.info("\n--- Usage: Summary ---")
+    logger.info(summary["usage"])
 
     if not ((translate_lang is None) or (translate_lang == "")):
-        print("\n--- Usage: Translation ---")
-        print(translation["usage"])
+        logger.info("\n--- Usage: Translation ---")
+        logger.info(translation["usage"])
         
-    print("\n--- Usage: Total ---")
+    logger.info("\n--- Usage: Total ---")
     amount = api_tokens_counted / 1000 * gpt_pricing_per_1k_token
-    print(f"For GPT, {amount:.3f} USD for {api_tokens_counted} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
+    logger.info(f"For GPT, {amount:.3f} USD for {api_tokens_counted} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
     amount = amount + whisper_amount
-    print(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
+    logger.info(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
 
 if __name__ == "__main__":
     is_run = False
+    add_module_path()
         
     if os.environ.get(openai_api_key_name) is None:
-        print("Please export environment variable OPENAI_API_KEY on your client terminal")
+        logger.info("Please export environment variable OPENAI_API_KEY on your client terminal")
         is_run = False
     else:
-        print("Checked OPENAI_API_KEY exists on environment")
+        logger.info("Checked OPENAI_API_KEY exists on environment")
         is_run = True
 
     if is_run:
@@ -188,7 +213,7 @@ if __name__ == "__main__":
             # Check if the files exist
             for filename in filenames:
                 if not os.path.isfile(filename):
-                    print(f"File '{filename}' does not exist.")
+                    logger.error(f"File '{filename}' does not exist.")
                     sys.exit(1)
         else:
             # detect original language from the existing transcript    
@@ -196,5 +221,5 @@ if __name__ == "__main__":
          
         main(script_file, filenames, org_lang, translate_lang, length, do_transcribe)
     else:
-        print("ERROR: Please check the configuration.")
+        logger.info("ERROR: Please check the configuration.")
         sys.exit(1)

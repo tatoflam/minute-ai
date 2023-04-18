@@ -9,6 +9,20 @@ do_transcribe="y"
 translate_lang=""
 length=0
 
+add_python_path() {
+    # Get the absolute path of the directory containing this script
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+    # Get the absolute path
+    base_dir="$(dirname "$script_dir")"
+
+    # Add the "minutes" directory to the Python path
+    modules_dir="$script_dir/minutes"
+    if [[ ! ":$PYTHONPATH:" == *":$modules_dir:"* ]]; then
+        export PYTHONPATH="$modules_dir:$PYTHONPATH"
+    fi
+}
+
 # Get 30 seconds audio file for the language detection
 # Input and output filenames
 make_short_audio() {
@@ -18,11 +32,9 @@ make_short_audio() {
     # Get the total duration of the audio file
     total_duration=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$input_audio_file")
     total_duration=${total_duration%.*}
-    echo "$total_duration"
 
     # Calculate the start time for the 30-second segment
     start_time=$(( (total_duration / 2) - $duration / 2 ))
-    echo "$start_time"
 
     # Extract the 30-second segment from the middle of the audio file
     ffmpeg -i "$input_audio_file" -ss "$start_time" -t  $duration -c:a copy "$short_audio_file"
@@ -118,6 +130,8 @@ if [ "$do_transcribe" == "y" ]; then
     done
 fi
 
+source add_python_path
+
 if [ $(uname -s) == "Darwin" ]||[ $(uname -s) == "Linux" ]; then
     # Mac or Linux
     source env/bin/activate
@@ -125,7 +139,7 @@ else
     source env/Scripts/activate
 fi
 
-python minutes.py \
+python minutes/minutes.py \
     --script_file "$script_file" \
     --lang "$translate_lang" \
     --files "${segmented_files[@]}" \
