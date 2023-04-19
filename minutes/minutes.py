@@ -131,12 +131,12 @@ def make_minutes(script_file, filenames, org_lang=None,
     
     logger.info("\n--- Usage: Summary ---")
     for u in summary_usage:
-        logger.info(u)
+        logger.info(serialize(u))
 
     if translate_usages != "" :
         logger.info("\n--- Usage: Translation ---")
         for u in translate_usages:
-            logger.info(u)
+            logger.info(serialize(u))
         
     logger.info("\n--- Usage: Total ---")
     amount = api_tokens / 1000 * gpt_pricing_per_1k_token

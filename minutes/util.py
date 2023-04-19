@@ -107,6 +107,9 @@ def split_transcript(model_name, tokens, max_token_length):
     return transcripts
 
 def serialize(obj):
+    if isinstance(obj, list):
+        obj = obj[0]
+    
     if isinstance(obj, OpenAIObject):
         # Serialize the OpenAIObject as a dictionary
         return obj.to_dict()
