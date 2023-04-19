@@ -33,6 +33,7 @@ run command `./minutes.sh -f "input file name" -l "language code"`
 
 - -f: Input file (Audio, video, or text file)
 - -l: (Optional) Language to be translated (language code in [ISO-639-1](https://www.loc.gov/standards/iso639-2/php/code_list.php) format). 
+- -p: (Optional) User prompt for adding instruction to make summary
 
 For example, 
 
