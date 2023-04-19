@@ -2,15 +2,15 @@ import json
 import argparse
 import os
 import sys
+import traceback
 from logging import config, getLogger
 
 from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
-    tokenize, split_transcript, detect_lang_code
+    tokenize, split_transcript, detect_lang_code, serialize
 from constants import logging_conf, openai_api_key_name, gpt_model, \
     whisper_pricing_per_min, gpt_pricing_per_1k_token,  max_token_length, \
     token_overhead
-from api import transcribe_files, summarize, translate, continue_prompt, \
-    set_key, translate
+from api import transcribe_files, get_summarized_content, set_key, get_translated_content
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
 
@@ -37,12 +37,15 @@ def get_arguments():
     parser.add_argument('--lang', type=str, default=None, help='Translated Language in ISO-639-1 language code')    
     parser.add_argument('--length', type=float, default=None, help='Length in minutes of the input audio file')    
     parser.add_argument('--do_transcribe', type=str, default=None, help='y if doing transcribe')
+    parser.add_argument('--user_prompt', type=str, default=None, help='user prompt for additional instruction')
+    
 
     args = parser.parse_args()
     return args
     
-def main(script_file, filenames, org_lang=None,  
-         translate_lang=None, length=None, do_transcribe="y"):
+def make_minutes(script_file, filenames, org_lang=None,  
+         translate_lang=None, length=None, do_transcribe="y",
+         user_prompt=None):
 
     # Transcribe
     logger.info("\nTranscribing..." )
@@ -60,7 +63,9 @@ def main(script_file, filenames, org_lang=None,
     else:
         transcript = transcribe_files(script_file, filenames, org_lang)
         
-    logger.info(f"--- Entire script ---\n'{transcript}'" )
+    char_counted = len(transcript)
+    logger.info(f"--- {char_counted} characters in the transcript from {script_file} ---")        
+    # logger.debug(f"--- Entire script ---\n'{transcript}'" )
     
     # Count num tokens from entire transcript
     tokens, tokens_counted = tokenize(gpt_model ,transcript)
@@ -78,90 +83,43 @@ def main(script_file, filenames, org_lang=None,
         transcripts = [transcript]
     
     # Summarize
-    api_tokens_counted = 0
+    api_tokens = 0
+    translate_api_tokens = 0
+    translate_usages = []
+    
     logger.info(f"\nSummarizing in the original language {org_lang}..." )
-    summary, api_tokens_counted = summarize(transcripts, org_lang)
-    
-    logger.info("\n--- Minutes summary ---" )
-    summary_response = str()
-    
-    for i, choice in enumerate(summary["choices"]):
-        logger.info(f"--- choice: {i} ---")
-        
-        finish_reason = choice["finish_reason"]
-        summary_response += choice["message"]["content"]
-        if not isinstance(summary_response, str):
-            logger.debug("String content was not responded")
-            summary_response = str(summary_response)
-        
-        # Check finish_response
-        logger.info(f"summary finish_reason: '{finish_reason}'")
-        if finish_reason == "stop":
-            pass
-        else:
-            logger.info("Continuing prompt...")
-            while True:
-                continue_choice = continue_prompt()["choice"][0]                
-                summary_response += continue_choice["message"]["content"]
-                if not isinstance(summary_response, str):
-                    logger.debug("String content was not responded")
-                    summary_response = str(summary_response)
+    summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
+    api_tokens += api_tokens_summary
 
-                continue_usage = continue_prompt()["usage"]
-                logger.info(continue_usage)
-                api_tokens_counted += continue_usage["total_tokens"]
- 
-                finish_reason = continue_choice["finish_reason"]                               
-                logger.info(f"Continued summary finish reason: '{finish_reason}'")
-                if finish_reason=="stop":
-                    break
-    
-    if detect_lang_code(summary_response) != org_lang:
-        summary_response = translate(summary_response, org_lang)
-                
-    logger.info(summary_response)
+    logger.info("\n--- Minutes summary ---" )
+    lang_summary = detect_lang_code(summary_content)
+    if  lang_summary != org_lang:
+        logger.info(f"OpenAI returned a summary in '{lang_summary}', not in original language '{org_lang}'. Translating it. ")
+        s, t, u  = get_translated_content(summary_content, org_lang)
+        summary_content = s
+        api_tokens += t
+        translate_api_tokens += t
+        translate_usages.extend(u)
+    logger.info(summary_content)
     
     t_name, _ = os.path.splitext(script_file)
     with open(f"{t_name}.md", "w") as file:
-        file.write(summary_response)
+        file.write(summary_content)
 
     # Translate    
     if not ((translate_lang is None) or (translate_lang == "")):
         logger.info(f"\nTranslating summary to '{translate_lang}'..." )
-        translation = translate(summary_response, translate_lang)
+        translate_content, api_tokens_translation, translate_usage  = \
+            get_translated_content(summary_content, translate_lang)
+        api_tokens += api_tokens_translation
+        translate_api_tokens += api_tokens_translation
+        translate_usages.extend(translate_usage)
+
         logger.info(f"\n--- Minutes summary translation in '{translate_lang}'---" )
         
-        translate_response = str()
-        api_tokens_counted += translation["usage"]["total_tokens"]
-
-        for i, choice in enumerate(translation["choices"]):
-            logger.info(f"--- choice: {i} ---")
-        
-            finish_reason = choice["finish_reason"]
-            translate_response += choice["message"]["content"]
-            
-            # Check finish_response
-            logger.info(f"translate finish_reason: '{finish_reason}'")
-            if finish_reason == "stop":
-                pass
-            else:
-                logger.info("Continuing prompt...")
-                while True:                      
-                    continue_choice = continue_prompt()["choice"][0]                
-                    translate_response += continue_choice["message"]["content"]
-
-                    continue_usage = continue_prompt()["usage"]
-                    logger.info(continue_usage)
-                    api_tokens_counted += continue_usage["total_tokens"]
-    
-                    finish_reason = continue_choice["finish_reason"]                               
-                    logger.info(f"Continued summary finish reason: '{finish_reason}'")
-                    if finish_reason=="stop":
-                        break
-
-        logger.info(translate_response)
+        logger.info(translate_content)
         with open(f"{t_name}_{translate_lang}.md", "w") as file:
-            file.write(translate_response)
+            file.write(translate_content)
 
     logger.info("\n--- Usage  -----------------")
     amount = 0
@@ -172,19 +130,21 @@ def main(script_file, filenames, org_lang=None,
         logger.info(f"For whisper, '{whisper_amount:.3f}' USD for '{length:.2f}' minutes * '{whisper_pricing_per_min}' USD/min")
     
     logger.info("\n--- Usage: Summary ---")
-    logger.info(summary["usage"])
+    for u in summary_usage:
+        logger.info(u)
 
-    if not ((translate_lang is None) or (translate_lang == "")):
+    if translate_usages != "" :
         logger.info("\n--- Usage: Translation ---")
-        logger.info(translation["usage"])
+        for u in translate_usages:
+            logger.info(u)
         
     logger.info("\n--- Usage: Total ---")
-    amount = api_tokens_counted / 1000 * gpt_pricing_per_1k_token
-    logger.info(f"For GPT, {amount:.3f} USD for {api_tokens_counted} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
+    amount = api_tokens / 1000 * gpt_pricing_per_1k_token
+    logger.info(f"For GPT, {amount:.3f} USD for {api_tokens} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
     amount = amount + whisper_amount
     logger.info(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
 
-if __name__ == "__main__":
+def main():
     is_run = False
     add_module_path()
         
@@ -205,6 +165,7 @@ if __name__ == "__main__":
         script_file = args.script_file
         translate_lang = args.lang
         length = args.length
+        user_prompt = args.user_prompt
         
         if do_transcribe == "y":
             # detect original language from the audio file
@@ -219,7 +180,14 @@ if __name__ == "__main__":
             # detect original language from the existing transcript    
             org_lang = detect_lang_by_langdetect(script_file)
          
-        main(script_file, filenames, org_lang, translate_lang, length, do_transcribe)
+            try:
+                make_minutes(script_file, filenames, org_lang, translate_lang, length, do_transcribe, user_prompt)
+            except Exception as e:
+                logger.error(traceback.print_exc())     
+                
     else:
         logger.info("ERROR: Please check the configuration.")
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()

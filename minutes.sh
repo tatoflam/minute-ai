@@ -79,7 +79,7 @@ remove_temporal_files(){
 }
 
 # Parse parameters
-while getopts :f:l: opt
+while getopts :f:l:p: opt
 do
     case $opt in
         f)
@@ -89,6 +89,10 @@ do
         l)
             translate_lang="$OPTARG"
             echo "Option -l $translate_lang"
+            ;;
+        p)
+            prompt="$OPTARG"
+            echo "Option -p $prompt"
             ;;
         *)
             echo -e "Usage: $0 -f <audio file> -l <Optional: language to translate in ISO-693-1 code>\n $0 -f input.m4a -l ja"
@@ -130,7 +134,7 @@ if [ "$do_transcribe" == "y" ]; then
     done
 fi
 
-source add_python_path
+add_python_path
 
 if [ $(uname -s) == "Darwin" ]||[ $(uname -s) == "Linux" ]; then
     # Mac or Linux
@@ -144,7 +148,8 @@ python minutes/minutes.py \
     --lang "$translate_lang" \
     --files "${segmented_files[@]}" \
     --length "${length}" \
-    --do_transcribe "$do_transcribe" 
+    --do_transcribe "$do_transcribe" \
+    --user_prompt "$prompt"
 
 deactivate
 

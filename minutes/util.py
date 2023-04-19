@@ -1,12 +1,12 @@
-import sys
-import os
 import math
 import string
+import json
 import whisper
 import tiktoken
 from logging import getLogger
 from constants import temp_short_mp3, num_short_text
 from langdetect import detect, lang_detect_exception
+from openai.openai_object import OpenAIObject
 
 iso639_1_langs = ['aa', 'ab', 'af', 'am', 'ar', 'as', 'ay', 'az', 'ba', 'be', 'bg', 'bh', 'bi', 'bn', 'bo', 'br', 'ca', 'co', 'cs', 'cy', 'da', 'de', 'dz', 'el', 'en', 'eo', 'es', 'et', 'eu', 'fa', 'fi', 'fj', 'fo', 'fr', 'fy', 'ga', 'gd', 'gl', 'gn', 'gu', 'ha', 'hi', 'hr', 'hu', 'hy', 'ia', 'ie', 'ik', 'in', 'is', 'it', 'iw', 'ja', 'ji', 'jw', 'ka', 'kk', 'kl', 'km', 'kn', 'ko', 'ks', 'ku', 'ky', 'la', 'ln', 'lo', 'lt', 'lv', 'mg', 'mi', 'mk', 'ml', 'mn', 'mo', 'mr', 'ms', 'mt', 'my', 'na', 'ne', 'nl', 'no', 'oc', 'om', 'or', 'pa', 'pl', 'ps', 'pt', 'qu', 'rm', 'rn', 'ro', 'ru', 'rw', 'sa', 'sd', 'sg', 'sh', 'si', 'sk', 'sl', 'sm', 'sn', 'so', 'sq', 'sr', 'ss', 'st', 'su', 'sv', 'sw', 'ta', 'te', 'tg', 'th', 'ti', 'tk', 'tl', 'tn', 'to', 'tr', 'ts', 'tt', 'tw', 'uk', 'ur', 'uz', 'vi', 'vo', 'wo', 'xh', 'yi', 'yo', 'za', 'zh', 'zu']
 
@@ -36,7 +36,6 @@ def detect_lang_by_whisper():
     return detected_lang
 
 def get_short_text(script_file):
-
 
     # 'iso-8859-1': Latin
     with open(script_file,'r', encoding='utf-8') as f:
@@ -106,3 +105,14 @@ def split_transcript(model_name, tokens, max_token_length):
         end_pos = end_pos + max_token_length
     
     return transcripts
+
+def serialize(obj):
+    if isinstance(obj, OpenAIObject):
+        # Serialize the OpenAIObject as a dictionary
+        return obj.to_dict()
+    else:
+        # Use the default serialization function for other objects
+        return json.JSONEncoder().default(obj)
+
+    json_string = json.dumps(response, default=serialize, indent=4)
+    return json_string

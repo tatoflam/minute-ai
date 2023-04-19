@@ -42,27 +42,34 @@ If you want to make transcript and summary, also include the translation in Japa
 ./minutes.sh -f ./data/audio_file.m4a -l ja
 ```
 
-You can transcribe audio in a video file too.  
+You can transcribe audio in a video file too.
 
 ```
 ./minutes.sh -f ./data/video_file.mp4 -l ja
 ```
 
-If you do not need the translation for the summary, 
+If you already have a transcript in a text file, you can just summarize and translate it into Korean language by: 
+
+```
+./minutes.sh -f ./data/transcript.txt -l ko
+```
+
+If you do not need the translation for the summary, omit `-l` option.  
 
 ```
 ./minutes.sh -f ./data/audio_file.m4a
 ```
 
-If you already have a transcript in text format, you can just summarize and translate it by: 
+You can inject any instruction as an additional prompt by `-p` option. 
 
 ```
-./minutes.sh -f ./data/transcript.txt -l ja
+./minutes.sh -f ./data/audio_file.m4a -l es -p " Limit the summary to 400 characters"
 ```
+
 
 You may need to input y or N to user prompt from the tool or ffmpeg by on running shell command. 
 
-After completion, you will find a transcript in `.txt` file, and summaries in the original language and its translation in `.md` files in the same directory of the input file. 
+After completion, you will find a transcript in `.txt` file, and summaries in the original language and its translation in `.md` files in the same directory of the input file.  
 
 ## Install
 
