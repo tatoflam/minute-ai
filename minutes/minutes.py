@@ -22,9 +22,7 @@ config.dictConfig(config_dict)
 logger = getLogger(__name__)
 
 def add_module_path():
-    # Add the "python_modules" directory to the Python path
     base_dir = os.path.dirname(__file__)
-    # modules_dir = os.path.join(base_dir, "python_modules")
     if base_dir not in sys.path:
         sys.path.append(base_dir)
 
@@ -180,10 +178,10 @@ def main():
             # detect original language from the existing transcript    
             org_lang = detect_lang_by_langdetect(script_file)
          
-            try:
-                make_minutes(script_file, filenames, org_lang, translate_lang, length, do_transcribe, user_prompt)
-            except Exception as e:
-                logger.error(traceback.print_exc())     
+        try:
+            make_minutes(script_file, filenames, org_lang, translate_lang, length, do_transcribe, user_prompt)
+        except Exception as e:
+            logger.error(traceback.print_exc())     
                 
     else:
         logger.info("ERROR: Please check the configuration.")

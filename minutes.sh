@@ -61,7 +61,7 @@ convert_to_mp3() {
     # segment file into chunks in 25 minutes
     ffmpeg -i "$output_file" -f segment -segment_time 1500 -c copy "${input_file%.*}_%03d.mp3"
 
-    make_short_audio "${input_file%.*}_000.mp3" 30 
+    make_short_audio "${input_file%.*}_000.mp3" 120
 }
 
 remove_temporal_files(){
