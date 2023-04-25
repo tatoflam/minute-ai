@@ -184,13 +184,15 @@ def parse_openai_object(response):
                     c, t, u = parse_openai_object(continue_response)
                     logger.info(f"--- continue content ---\n{continue_content}")
 
-                    contents += c
+                    #contents += c
+                    contents = c
                     api_tokens_counted += t
                     usages.append(u)
     
                     continue_finish_reason = continue_response["choices"][0]["finish_reason"]                               
                     logger.info(f"Continue finish reason: '{continue_finish_reason}'")
                     if continue_finish_reason=="stop":
+                        
                         break
     else:
         logger.error(f"cannot retrieve OpenAI API Object from {response}")

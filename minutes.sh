@@ -8,6 +8,7 @@ script_file=""
 do_transcribe="y"
 translate_lang=""
 length=0
+segmented_files=()
 
 add_python_path() {
     # Get the absolute path of the directory containing this script
@@ -126,12 +127,15 @@ if [ "$do_transcribe" == "y" ]; then
     # Convert the file to MP3 format if needed
     convert_to_mp3 "$file"
 
-    for segmented_file in $(ls -1 ${file%.*}_*.mp3)
+    mp3_path=${file%.*}_*.mp3
+    mp3_dir=$(dirname "$mp3_path")
+    mp3_file=$(basename "$mp3_path") 
+
+    while read segmented_file
     do
         echo $segmented_file
-        # Add the MP3 file to the list of files to process
-        segmented_files+=("$segmented_file")
-    done
+        segmented_files+=("${segmented_file}")
+    done < <(find "$mp3_dir" -name "$mp3_file")
 fi
 
 add_python_path

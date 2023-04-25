@@ -78,6 +78,7 @@ After completion, you will find a transcript in `.txt` file, and summaries in th
 
 - [python3](https://www.python.org/)
 - [ffmpeg](https://ffmpeg.org/)
+  - For Windows, add the path for the `.exe` file to user environment variable in system variables setting. 
 - any terminal environment for executing bash and python script
   - Mac: Terminal.app
   - Windows: Git Bash (bundled in Git for Windows)
@@ -126,6 +127,7 @@ However, please be careful when using this tool with content that contains your 
 
 ### TODO:
 
+- Adopt LangChain for the case of token length limit over
 - Experiment `gpt-4`
 
 and more.
