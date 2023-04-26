@@ -135,7 +135,7 @@ if [ "$do_transcribe" == "y" ]; then
     do
         echo $segmented_file
         segmented_files+=("${segmented_file}")
-    done < <(find "$mp3_dir" -name "$mp3_file")
+    done < <(find "$mp3_dir" -name "$mp3_file"|sort)
 fi
 
 add_python_path
