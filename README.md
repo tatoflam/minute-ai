@@ -98,7 +98,7 @@ source env/Scripts/activate
 Install requirements on the virtual environment.  
 
 ```
-(env)pip install -r requirements.txt
+(env)pip install -r requirements.txt  --index-url=https://pypi.org
 ```
 
 ## Security
@@ -123,11 +123,15 @@ However, please be careful when using this tool with content that contains your 
 - [OpenAI | Speech to Text](https://platform.openai.com/docs/guides/speech-to-text)
 - [OpenAI | Production Best Practice](https://platform.openai.com/docs/guides/production-best-practices/)
 
+## Releases
+
+- 1.0.0 : Initial release
+- 1.1.0 : Adopt LangChain for summarization
+
 ## What's next?
 
 ### TODO:
 
-- Adopt LangChain for the case of token length limit over
 - Experiment `gpt-4`
 
 and more.

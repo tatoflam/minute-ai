@@ -10,9 +10,10 @@ from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
 from constants import logging_conf, openai_api_key_name, gpt_model, \
     whisper_pricing_per_min, gpt_pricing_per_1k_token,  max_token_length, \
     token_overhead
-from api import transcribe_files, get_summarized_content, set_key, get_translated_content
+from api import transcribe_files, get_summarized_content, set_key, get_translated_content, get_summarized_content_by_langchain
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
+from langchain.text_splitter import CharacterTextSplitter
 
 config_dict = None
 with open(logging_conf, 'r', encoding='utf-8') as f:
@@ -71,14 +72,16 @@ def make_minutes(script_file, filenames, org_lang=None,
         gpt_model, summary_chunks_user_content)
     logger.info(f"--- Token counted: {tokens_counted} ---")
     
-    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
-        splitted_token_count = max_token_length - \
-            longest_prompt_token_counted - token_overhead
-        transcripts = split_transcript(
-            gpt_model, tokens, splitted_token_count
-            )
-    else:
-        transcripts = [transcript]
+#    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
+#        splitted_token_count = max_token_length - \
+#            longest_prompt_token_counted - token_overhead
+#        transcripts = split_transcript(
+#            gpt_model, tokens, splitted_token_count
+#            )
+#    else:
+#        transcripts = [transcript]
+    text_splitter = CharacterTextSplitter()
+    transcripts = text_splitter.split_text(transcript)
     
     # Summarize
     api_tokens = 0
@@ -86,8 +89,13 @@ def make_minutes(script_file, filenames, org_lang=None,
     translate_usages = []
     
     logger.info(f"\nSummarizing in the original language {org_lang}..." )
-    summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
-    api_tokens += api_tokens_summary
+    #summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
+    result = get_summarized_content_by_langchain(transcripts, org_lang)
+    summary_content = result["output_text"]
+    summary_usage = [{}]
+    logger.info(summary_content)
+    #api_tokens += api_tokens_summary
+    
 
     logger.info("\n--- Minutes summary ---" )
     lang_summary = detect_lang_code(summary_content)
@@ -128,8 +136,8 @@ def make_minutes(script_file, filenames, org_lang=None,
         logger.info(f"For whisper, '{whisper_amount:.3f}' USD for '{length:.2f}' minutes * '{whisper_pricing_per_min}' USD/min")
     
     logger.info("\n--- Usage: Summary ---")
-    for u in summary_usage:
-        logger.info(serialize(u))
+#    for u in summary_usage:
+#        logger.info(serialize(u))
 
     if translate_usages != "" :
         logger.info("\n--- Usage: Translation ---")
@@ -154,7 +162,7 @@ def main():
         is_run = True
 
     if is_run:
-        set_key()
+        # set_key()
 
         args = get_arguments()
 

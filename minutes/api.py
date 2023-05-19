@@ -1,17 +1,23 @@
 import os
 import openai
+from langchain.llms import OpenAI
 from logging import getLogger
 
 from prompt import summary_system_content, summary_user_content, \
     summary_chunks_user_content, translation_system_content, \
     translation_user_content, continue_content, \
-    chat_detect_lang_content
+    chat_detect_lang_content, prompt_template, refine_template
 from constants import gpt_model, whisper_model, openai_api_key_name
 from openai.openai_object import OpenAIObject
+
+from langchain.docstore.document import Document
+from langchain.chains.summarize import load_summarize_chain
+from langchain.prompts import PromptTemplate
 
 logger = getLogger(__name__)
 
 def set_key():
+    # This function is used only when open ai api is directly used (without langchain wrapper)
     openai.api_key = os.environ.get(openai_api_key_name)
 
 def detect_lang(text):
@@ -127,6 +133,26 @@ def continue_prompt():
         ]
     )
     return response
+
+def get_summarized_content_by_langchain(transcripts, 
+                                        org_lang=None):
+    docs = [Document(page_content=t) for t in transcripts]
+
+    PROMPT = PromptTemplate(template=prompt_template, input_variables=["text","org_lang"])
+
+    refine_prompt = PromptTemplate(
+        input_variables=["existing_answer", "text"],
+        template=refine_template,
+    )
+    chain = load_summarize_chain(
+        OpenAI(temperature=0), chain_type="refine", return_intermediate_steps=True, question_prompt=PROMPT, refine_prompt=refine_prompt)
+    contents = chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
+    
+    # logger.info(f"Summary: API token counted: {api_tokens}")
+    logger.info(f"Summarized")
+    
+    #return contents, api_tokens, usages
+    return contents
 
 def translate(summary, translate_lang):
     translation = openai.ChatCompletion.create(
