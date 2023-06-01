@@ -14,6 +14,7 @@ from api import transcribe_files, get_summarized_content, set_key, get_translate
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
 from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 config_dict = None
 with open(logging_conf, 'r', encoding='utf-8') as f:
@@ -68,8 +69,8 @@ def make_minutes(script_file, filenames, org_lang=None,
     
     # Count num tokens from entire transcript
     tokens, tokens_counted = tokenize(gpt_model ,transcript)
-    _, longest_prompt_token_counted = tokenize(
-        gpt_model, summary_chunks_user_content)
+    #_, longest_prompt_token_counted = tokenize(
+    #    gpt_model, summary_chunks_user_content)
     logger.info(f"--- Token counted: {tokens_counted} ---")
     
 #    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
@@ -80,9 +81,18 @@ def make_minutes(script_file, filenames, org_lang=None,
 #            )
 #    else:
 #        transcripts = [transcript]
-    text_splitter = CharacterTextSplitter()
+
+#    text_splitter = CharacterTextSplitter()
+    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+        separator = " ", # \s
+        # chunk_size is the number of tokens in a chunk. 
+        # 3841 = 4097(maximum for gpt-3.5-turbo) - 256 (completion)
+        chunk_size = 3841,
+        chunk_overlap= 0
+    )
+
     transcripts = text_splitter.split_text(transcript)
-    
+    logger.info(len(transcripts))
     # Summarize
     api_tokens = 0
     translate_api_tokens = 0
@@ -90,7 +100,7 @@ def make_minutes(script_file, filenames, org_lang=None,
     
     logger.info(f"\nSummarizing in the original language {org_lang}..." )
     #summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
-    result = get_summarized_content_by_langchain(transcripts, org_lang)
+    result, token_info = get_summarized_content_by_langchain(transcripts, org_lang)
     summary_content = result["output_text"]
     summary_usage = [{}]
     logger.info(summary_content)

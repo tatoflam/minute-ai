@@ -6,13 +6,14 @@ from logging import getLogger
 from prompt import summary_system_content, summary_user_content, \
     summary_chunks_user_content, translation_system_content, \
     translation_user_content, continue_content, \
-    chat_detect_lang_content, prompt_template, refine_template
+    chat_detect_lang_content, summary_template, refine_template
 from constants import gpt_model, whisper_model, openai_api_key_name
 from openai.openai_object import OpenAIObject
 
 from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate
+from langchain.callbacks import get_openai_callback
 
 logger = getLogger(__name__)
 
@@ -39,6 +40,7 @@ def transcribe(filename, org_lang):
     audio_file= open(filename, "rb")
     transcribed = openai.Audio.transcribe(model=whisper_model, 
                                             file=audio_file,
+                                            temperature=0.1,
                                             language=org_lang)
     
     transcript = transcribed["text"].encode('utf-8').decode('utf-8')
@@ -138,21 +140,36 @@ def get_summarized_content_by_langchain(transcripts,
                                         org_lang=None):
     docs = [Document(page_content=t) for t in transcripts]
 
-    PROMPT = PromptTemplate(template=prompt_template, input_variables=["text","org_lang"])
+    summary_prompt = PromptTemplate(template=summary_template, input_variables=["text","org_lang"])
 
     refine_prompt = PromptTemplate(
         input_variables=["existing_answer", "text"],
         template=refine_template,
     )
-    chain = load_summarize_chain(
-        OpenAI(temperature=0), chain_type="refine", return_intermediate_steps=True, question_prompt=PROMPT, refine_prompt=refine_prompt)
-    contents = chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
+    
+    refine_chain = load_summarize_chain(
+        OpenAI(temperature=0), chain_type="refine", return_intermediate_steps=True, question_prompt=summary_prompt, refine_prompt=refine_prompt,
+        verbose=False)
+
+    with get_openai_callback() as cb:
+        contents = refine_chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
+        print(f"Total Tokens: {cb.total_tokens}")
+        print(f"Prompt Tokens: {cb.prompt_tokens}")
+        print(f"Completion Tokens: {cb.completion_tokens}")
+        print(f"Total Cost (USD): ${cb.total_cost}")
+        token_info = {
+            "Total Tokens": cb.total_tokens,
+            "Prompt Tokens": cb.prompt_tokens,
+            "Completion Tokens": cb.completion_tokens,
+            "Total Cost (USD)": cb.total_cost
+        }
+    
     
     # logger.info(f"Summary: API token counted: {api_tokens}")
     logger.info(f"Summarized")
     
     #return contents, api_tokens, usages
-    return contents
+    return contents, token_info
 
 def translate(summary, translate_lang):
     translation = openai.ChatCompletion.create(

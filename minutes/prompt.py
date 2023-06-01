@@ -14,11 +14,11 @@ translation_user_content = "Create a translated version for the '{summary}' usin
 chat_detect_lang_content = "What is the ISO-639-1 language code for the language used in the provided text? text:'{text}'"
 continue_content = "Continue generating text while taking into account the token limit constraints for Chat GPT."
 
-prompt_template = """Write a concise summary of the following:
+summary_template = """Write a concise summary of the following:
 
 {text}
 
-CONCISE SUMMARY IN {org_lang}:"""
+CONCISE SUMMARY IN {org_lang} by Markdown format:"""
 refine_template = (
     "Your job is to produce a final summary\n"
     "We have provided an existing summary up to a certain point: {existing_answer}\n"
@@ -27,6 +27,6 @@ refine_template = (
     "------------\n"
     "{text}\n"
     "------------\n"
-    "Given the new context, refine the original summary in Italian"
+    "Given the new context, refine the original summary in English"
     "If the context isn't useful, return the original summary."
 )
