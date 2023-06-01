@@ -9,8 +9,8 @@ from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
     tokenize, split_transcript, detect_lang_code, serialize
 from constants import logging_conf, openai_api_key_name, gpt_model, \
     whisper_pricing_per_min, gpt_pricing_per_1k_token,  max_token_length, \
-    token_overhead
-from api import transcribe_files, get_summarized_content, set_key, get_translated_content, get_summarized_content_by_langchain
+    completion_token_length, token_overhead, SUMMARY_PROMPT
+from api import transcribe_files, get_summarized_content, set_key, get_translated_content, get_summarized_content_by_refine
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
 from langchain.text_splitter import CharacterTextSplitter
@@ -46,6 +46,12 @@ def get_arguments():
 def make_minutes(script_file, filenames, org_lang=None,  
          translate_lang=None, length=None, do_transcribe="y",
          user_prompt=None):
+
+    api_tokens = 0
+    translate_api_tokens = 0
+    translate_usages = []
+    amount = 0
+    whisper_amount = 0
 
     # Transcribe
     logger.info("\nTranscribing..." )
@@ -87,25 +93,28 @@ def make_minutes(script_file, filenames, org_lang=None,
         separator = " ", # \s
         # chunk_size is the number of tokens in a chunk. 
         # 3841 = 4097(maximum for gpt-3.5-turbo) - 256 (completion)
-        chunk_size = 3841,
+        # 
+        chunk_size = max_token_length - completion_token_length,
         chunk_overlap= 0
     )
 
     transcripts = text_splitter.split_text(transcript)
     logger.info(len(transcripts))
+    
     # Summarize
-    api_tokens = 0
-    translate_api_tokens = 0
-    translate_usages = []
     
     logger.info(f"\nSummarizing in the original language {org_lang}..." )
-    #summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
-    result, token_info = get_summarized_content_by_langchain(transcripts, org_lang)
-    summary_content = result["output_text"]
-    summary_usage = [{}]
-    logger.info(summary_content)
-    #api_tokens += api_tokens_summary
     
+    if SUMMARY_PROMPT == "refine": 
+        result, api_tokens_summary, summary_usage = get_summarized_content_by_refine(transcripts, org_lang)        
+        summary_content = result["output_text"]
+        amount = json.loads(summary_usage[0])["Total Cost (USD)"]
+    elif SUMMARY_PROMPT == "map_reduce":
+        pass
+    else: 
+        summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
+    
+    api_tokens += api_tokens_summary
 
     logger.info("\n--- Minutes summary ---" )
     lang_summary = detect_lang_code(summary_content)
@@ -138,16 +147,14 @@ def make_minutes(script_file, filenames, org_lang=None,
             file.write(translate_content)
 
     logger.info("\n--- Usage  -----------------")
-    amount = 0
-    whisper_amount = 0
     logger.info("\n--- Usage: Transcription ---")
     if not length is None: 
         whisper_amount = (length * whisper_pricing_per_min)        
         logger.info(f"For whisper, '{whisper_amount:.3f}' USD for '{length:.2f}' minutes * '{whisper_pricing_per_min}' USD/min")
     
     logger.info("\n--- Usage: Summary ---")
-#    for u in summary_usage:
-#        logger.info(serialize(u))
+    for u in summary_usage:
+        logger.info(serialize(u))
 
     if translate_usages != "" :
         logger.info("\n--- Usage: Translation ---")
@@ -155,9 +162,16 @@ def make_minutes(script_file, filenames, org_lang=None,
             logger.info(serialize(u))
         
     logger.info("\n--- Usage: Total ---")
-    amount = api_tokens / 1000 * gpt_pricing_per_1k_token
-    logger.info(f"For GPT, {amount:.3f} USD for {api_tokens} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
-    amount = amount + whisper_amount
+    if SUMMARY_PROMPT not in ["refine","map_reduce"]:
+        # For gpt-4, prompt and completion token are differently charged. 
+        # So, the below pricing is not consistent. 
+        amount = api_tokens / 1000 * gpt_pricing_per_1k_token
+        amount = amount + whisper_amount
+
+        logger.info(f"For {gpt_model}, {amount:.3f} USD for {api_tokens} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
+    else:
+        amount = amount + whisper_amount
+        logger.info(f"For {gpt_model} with langchain summarization({SUMMARY_PROMPT}), {amount:.3f} USD for {api_tokens} tokens in total")
     logger.info(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
 
 def main():

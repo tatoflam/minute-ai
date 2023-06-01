@@ -18,15 +18,15 @@ summary_template = """Write a concise summary of the following:
 
 {text}
 
-CONCISE SUMMARY IN {org_lang} by Markdown format:"""
+Organize the summary into distinct topics and ensure all explicitly mentioned information is included in CONCISE SUMMARY IN {org_lang} BY MARKDOWN FORMAT.  :"""
 refine_template = (
-    "Your job is to produce a final summary\n"
+    "Your job is to produce a final summary by Markdown format\n"
     "We have provided an existing summary up to a certain point: {existing_answer}\n"
     "We have the opportunity to refine the existing summary"
     "(only if needed) with some more context below.\n"
     "------------\n"
     "{text}\n"
     "------------\n"
-    "Given the new context, refine the original summary in English"
+    "Given the new context, refine the original summary Organize the summary into distinct topics and ensure all explicitly mentioned information is included in CONCISE SUMMARY BY MARKDOWN FORMAT. "
     "If the context isn't useful, return the original summary."
 )

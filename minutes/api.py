@@ -1,4 +1,5 @@
 import os
+import json
 import openai
 from langchain.llms import OpenAI
 from logging import getLogger
@@ -136,7 +137,7 @@ def continue_prompt():
     )
     return response
 
-def get_summarized_content_by_langchain(transcripts, 
+def get_summarized_content_by_refine(transcripts, 
                                         org_lang=None):
     docs = [Document(page_content=t) for t in transcripts]
 
@@ -153,23 +154,17 @@ def get_summarized_content_by_langchain(transcripts,
 
     with get_openai_callback() as cb:
         contents = refine_chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
-        print(f"Total Tokens: {cb.total_tokens}")
-        print(f"Prompt Tokens: {cb.prompt_tokens}")
-        print(f"Completion Tokens: {cb.completion_tokens}")
-        print(f"Total Cost (USD): ${cb.total_cost}")
-        token_info = {
+        token_infos = [json.dumps({
             "Total Tokens": cb.total_tokens,
             "Prompt Tokens": cb.prompt_tokens,
             "Completion Tokens": cb.completion_tokens,
             "Total Cost (USD)": cb.total_cost
-        }
+        })]
     
-    
-    # logger.info(f"Summary: API token counted: {api_tokens}")
-    logger.info(f"Summarized")
-    
-    #return contents, api_tokens, usages
-    return contents, token_info
+        logger.info(f"Summarized")
+        
+        #return contents, api_tokens, usages
+        return contents, cb.total_tokens, token_infos
 
 def translate(summary, translate_lang):
     translation = openai.ChatCompletion.create(
