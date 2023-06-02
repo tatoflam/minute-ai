@@ -7,7 +7,7 @@ This tool does:
 
 - convert input audio or video files into `mp3` (as it's relatively smaller audio format) and split it into appropriate sized chunk to send to whisper API by [ffmpeg](https://ffmpeg.org/)
 - detect original language spoken by [OpenAI-Whisper](https://github.com/openai/whisper) and make a transcript by OpenAI [OpenAI speech-to-text(Whisper API)](https://platform.openai.com/docs/guides/speech-to-text) (`whisper-1`)
-- summarize the transcript into a meeting note in the markdown format and translate it into the other language provided by [OpenAI Chat Completion (Chat API)](https://platform.openai.com/docs/guides/chat) (`gpt-3.5-turbo`)
+- summarize the transcript into a meeting note in the markdown format and translate it into the other language provided by [OpenAI Chat Completion (Chat API)](https://platform.openai.com/docs/guides/chat) (`gpt-4` or `gpt-3.5-turbo`)
 
 ## Usage
 
@@ -114,7 +114,7 @@ However, please be careful when using this tool with content that contains your 
 
 ## Environments (I confirmed)
 
-- Mac OS 12.3
+- Mac OS 13.2
 - python 3.10.0
 - ffmpeg 5.1.2
 
@@ -122,16 +122,16 @@ However, please be careful when using this tool with content that contains your 
 
 - [OpenAI | Speech to Text](https://platform.openai.com/docs/guides/speech-to-text)
 - [OpenAI | Production Best Practice](https://platform.openai.com/docs/guides/production-best-practices/)
+- [langchain-tutorials/data_generation/5 Levels Of Summarization - Novice To Expert.ipynb](https://github.com/gkamradt/langchain-tutorials/blob/main/data_generation/5%20Levels%20Of%20Summarization%20-%20Novice%20To%20Expert.ipynb)
 
 ## Releases
 
 - 1.0.0 : Initial release
-- 1.1.0 : Adopt LangChain for summarization
+- 1.1.0 : Apply `gpt-4`, adopt LangChain for summarization("refine","map_reduce","stuff")
+  - Note that this feature is still on `langchain` branch (not merged)
 
 ## What's next?
 
-### TODO:
+- Experiment diarization (speaker identification)
 
-- Experiment `gpt-4`
-
-and more.
+and more. 
