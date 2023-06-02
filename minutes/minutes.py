@@ -9,10 +9,12 @@ from util import detect_lang_by_whisper, detect_lang_by_langdetect, \
     tokenize, split_transcript, detect_lang_code, serialize
 from constants import logging_conf, openai_api_key_name, gpt_model, \
     whisper_pricing_per_min, gpt_pricing_per_1k_token,  max_token_length, \
-    token_overhead
-from api import transcribe_files, get_summarized_content, set_key, get_translated_content
+    completion_token_length, token_overhead, chain_type
+from api import transcribe_files, get_summarized_content, set_key, get_translated_content, get_summarized_content_by_langchain
 from prompt import summary_chunks_user_content
 # from sample import sample_text, sample_summary_str
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 config_dict = None
 with open(logging_conf, 'r', encoding='utf-8') as f:
@@ -45,6 +47,12 @@ def make_minutes(script_file, filenames, org_lang=None,
          translate_lang=None, length=None, do_transcribe="y",
          user_prompt=None):
 
+    api_tokens = 0
+    translate_api_tokens = 0
+    translate_usages = []
+    amount = 0
+    whisper_amount = 0
+
     # Transcribe
     logger.info("\nTranscribing..." )
     transcript = str()
@@ -67,29 +75,48 @@ def make_minutes(script_file, filenames, org_lang=None,
     
     # Count num tokens from entire transcript
     tokens, tokens_counted = tokenize(gpt_model ,transcript)
-    _, longest_prompt_token_counted = tokenize(
-        gpt_model, summary_chunks_user_content)
+    #_, longest_prompt_token_counted = tokenize(
+    #    gpt_model, summary_chunks_user_content)
     logger.info(f"--- Token counted: {tokens_counted} ---")
     
-    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
-        splitted_token_count = max_token_length - \
-            longest_prompt_token_counted - token_overhead
-        transcripts = split_transcript(
-            gpt_model, tokens, splitted_token_count
-            )
-    else:
-        transcripts = [transcript]
+#    if (tokens_counted + longest_prompt_token_counted ) > max_token_length:
+#        splitted_token_count = max_token_length - \
+#            longest_prompt_token_counted - token_overhead
+#        transcripts = split_transcript(
+#            gpt_model, tokens, splitted_token_count
+#            )
+#    else:
+#        transcripts = [transcript]
+
+#    text_splitter = CharacterTextSplitter()
+    text_splitter = CharacterTextSplitter.from_tiktoken_encoder(
+        separator = " ", # \s
+        # chunk_size is the number of tokens in a chunk. 
+        # 3841 = 4097(maximum for gpt-3.5-turbo) - 256 (completion)
+        chunk_size = max_token_length - completion_token_length,
+        chunk_overlap= 0
+    )
+
+    transcripts = text_splitter.split_text(transcript)
+    logger.info(len(transcripts))
     
     # Summarize
-    api_tokens = 0
-    translate_api_tokens = 0
-    translate_usages = []
     
     logger.info(f"\nSummarizing in the original language {org_lang}..." )
-    summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
+    
+    if chain_type in ["refine", "map_reduce", "stuff"]: 
+        result, api_tokens_summary, summary_usage = get_summarized_content_by_langchain(transcripts, org_lang, chain_type)
+        summary_content = result["output_text"]
+        amount = json.loads(summary_usage[0])["Total Cost (USD)"]
+    else: 
+        summary_content, api_tokens_summary, summary_usage = get_summarized_content(transcripts, org_lang, user_prompt)
+    
     api_tokens += api_tokens_summary
 
     logger.info("\n--- Minutes summary ---" )
+    if chain_type not in ["refine","map_reduce","stuff"]:
+        logger.info(f"\n--- langchain summary chain_type({chain_type})---" )
+    
     lang_summary = detect_lang_code(summary_content)
     if  lang_summary != org_lang:
         logger.info(f"OpenAI returned a summary in '{lang_summary}', not in original language '{org_lang}'. Translating it. ")
@@ -114,14 +141,14 @@ def make_minutes(script_file, filenames, org_lang=None,
         translate_usages.extend(translate_usage)
 
         logger.info(f"\n--- Minutes summary translation in '{translate_lang}'---" )
+        if chain_type not in ["refine","map_reduce","stuff"]:
+            logger.info(f"\n--- langchain summary chain_type({chain_type})---" )
         
         logger.info(translate_content)
         with open(f"{t_name}_{translate_lang}.md", "w") as file:
             file.write(translate_content)
 
     logger.info("\n--- Usage  -----------------")
-    amount = 0
-    whisper_amount = 0
     logger.info("\n--- Usage: Transcription ---")
     if not length is None: 
         whisper_amount = (length * whisper_pricing_per_min)        
@@ -137,9 +164,18 @@ def make_minutes(script_file, filenames, org_lang=None,
             logger.info(serialize(u))
         
     logger.info("\n--- Usage: Total ---")
-    amount = api_tokens / 1000 * gpt_pricing_per_1k_token
-    logger.info(f"For GPT, {amount:.3f} USD for {api_tokens} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
-    amount = amount + whisper_amount
+    if chain_type not in ["refine","map_reduce","stuff"]:
+        # For gpt-4, prompt and completion token are differently charged. 
+        # So, the below pricing is not consistent. 
+        amount += api_tokens / 1000 * gpt_pricing_per_1k_token
+        amount += whisper_amount
+
+        logger.info(f"For {gpt_model}, {amount:.3f} USD for {api_tokens} tokens in total * {gpt_pricing_per_1k_token} USD / 1k tokens")
+    else:
+        if translate_api_tokens > 0:
+            amount += translate_api_tokens / 1000 * gpt_pricing_per_1k_token
+        amount += whisper_amount
+        logger.info(f"For {gpt_model} with langchain summarization({chain_type}), {amount:.3f} USD for {api_tokens} tokens in total")
     logger.info(f"In total, approximate amount for making minutes was {amount:.3f} USD.\n")
 
 def main():
@@ -154,7 +190,7 @@ def main():
         is_run = True
 
     if is_run:
-        set_key()
+        # set_key()
 
         args = get_arguments()
 
