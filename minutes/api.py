@@ -1,16 +1,18 @@
 import os
 import json
 import openai
-from langchain.llms import OpenAI
 from logging import getLogger
 
 from prompt import summary_system_content, summary_user_content, \
     summary_chunks_user_content, translation_system_content, \
     translation_user_content, continue_content, \
-    chat_detect_lang_content, summary_template, refine_template
+    chat_detect_lang_content, summary_template, refine_template, \
+    map_template, combine_template
 from constants import gpt_model, whisper_model, openai_api_key_name
 from openai.openai_object import OpenAIObject
 
+from langchain.llms import OpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
 from langchain.chains.summarize import load_summarize_chain
 from langchain.prompts import PromptTemplate
@@ -137,34 +139,80 @@ def continue_prompt():
     )
     return response
 
-def get_summarized_content_by_refine(transcripts, 
-                                        org_lang=None):
+def get_summarized_content_by_langchain(transcripts, 
+                                        org_lang=None,
+                                        chain_type="refine"):
+    llm = ChatOpenAI(temperature=0, model_name=gpt_model, request_timeout=120)
     docs = [Document(page_content=t) for t in transcripts]
 
     summary_prompt = PromptTemplate(template=summary_template, input_variables=["text","org_lang"])
-
-    refine_prompt = PromptTemplate(
-        input_variables=["existing_answer", "text"],
-        template=refine_template,
-    )
     
-    refine_chain = load_summarize_chain(
-        OpenAI(temperature=0), chain_type="refine", return_intermediate_steps=True, question_prompt=summary_prompt, refine_prompt=refine_prompt,
-        verbose=False)
+    total_tokens = 0
+    prompt_tokens = 0
+    completion_tokens = 0
+    total_cost = 0
+    
+    if chain_type == "refine":
+        refine_prompt = PromptTemplate(
+            input_variables=["existing_answer", "text"],
+            template=refine_template,
+        )
+    
+        chain = load_summarize_chain(
+            llm, chain_type="refine", return_intermediate_steps=True, question_prompt=summary_prompt, refine_prompt=refine_prompt,
+            verbose=False)
+
+    elif chain_type == "map_reduce":
+        chain = load_summarize_chain(
+            llm, chain_type=chain_type, return_intermediate_steps=True, map_prompt=summary_prompt, combine_prompt=summary_prompt,
+            verbose=False)
+        
+    else:
+        # Call "stuff" chain for each doc
+        # 
+        map_prompt = PromptTemplate(template=map_template, input_variables=["text", "org_lang"])
+        
+        stuff_chain = load_summarize_chain(llm=llm,
+                             chain_type="stuff",
+                             prompt=map_prompt)
+        
+        summary_list = []
+        for i, doc in enumerate(docs):
+            with get_openai_callback() as cb:
+                chunk_summary = stuff_chain({"input_documents": [doc], "org_lang": org_lang})["output_text"]
+                total_tokens += cb.total_tokens
+                prompt_tokens += cb.prompt_tokens
+                completion_tokens += cb.completion_tokens
+                total_cost += cb.total_cost
+                
+            summary_list.append(chunk_summary)
+            print (f"Summary #{i} - Preview: {chunk_summary[:250]} \n")
+        
+        summaries = ",".join(summary_list)
+        # Convert it back to a document
+        summaries = Document(page_content=summaries)
+
+        print (f"Your total summary with combining 'stuff' chain has {llm.get_num_tokens(summaries.page_content)} tokens")
+
+        combine_prompt = PromptTemplate(template=combine_template, input_variables=["text","org_lang"])
+        
+        chain = load_summarize_chain(
+            llm, chain_type="stuff", prompt=combine_prompt, verbose=False)
 
     with get_openai_callback() as cb:
-        contents = refine_chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
+        contents = chain({"input_documents": docs, "org_lang": org_lang}, return_only_outputs=True)
         token_infos = [json.dumps({
-            "Total Tokens": cb.total_tokens,
-            "Prompt Tokens": cb.prompt_tokens,
-            "Completion Tokens": cb.completion_tokens,
-            "Total Cost (USD)": cb.total_cost
+            "Total Tokens": total_tokens + cb.total_tokens,
+            "Prompt Tokens": prompt_tokens + cb.prompt_tokens,
+            "Completion Tokens": completion_tokens + cb.completion_tokens,
+            "Total Cost (USD)": total_cost + cb.total_cost
         })]
     
         logger.info(f"Summarized")
         
         #return contents, api_tokens, usages
         return contents, cb.total_tokens, token_infos
+
 
 def translate(summary, translate_lang):
     translation = openai.ChatCompletion.create(

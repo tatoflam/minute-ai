@@ -30,3 +30,20 @@ refine_template = (
     "Given the new context, refine the original summary Organize the summary into distinct topics and ensure all explicitly mentioned information is included in CONCISE SUMMARY BY MARKDOWN FORMAT. "
     "If the context isn't useful, return the original summary."
 )
+
+map_template = """
+You will be given a single passage of a transcript. This section will be enclosed in triple backticks (```)
+Your goal is to give a CONCISE SUMMARY of this section so that a reader will have a full understanding of what happened.
+.
+
+```{text}```
+Your response should be able to grasp CONCISE FULL SUMMARY IN {org_lang} BY MARKDOWN FORMAT:
+"""
+
+combine_template = """
+You will be given a series of summaries from a transcript. The summaries will be enclosed in triple backticks (```)
+Your goal is to give a verbose summary of CONCISE SUMMARY in the meeting.
+
+```{text}```
+The reader should be able to grasp VERBOSE SUMMARY IN {org_lang} BY MARKDOWN FORMAT:
+"""
