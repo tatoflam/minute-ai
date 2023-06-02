@@ -128,7 +128,6 @@ However, please be careful when using this tool with content that contains your 
 
 - 1.0.0 : Initial release
 - 1.1.0 : Apply `gpt-4`, adopt LangChain for summarization("refine","map_reduce","stuff")
-  - Note that this feature is still on `langchain` branch (not merged)
 
 ## What's next?
 
