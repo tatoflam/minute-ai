@@ -113,9 +113,11 @@ def serialize(obj):
     if isinstance(obj, OpenAIObject):
         # Serialize the OpenAIObject as a dictionary
         return obj.to_dict()
+    if isinstance(obj, str):
+        json_string = json.dumps(obj, default=serialize, indent=4)
     else:
         # Use the default serialization function for other objects
         return json.JSONEncoder().default(obj)
 
-    json_string = json.dumps(response, default=serialize, indent=4)
+    # json_string = json.dumps(obj, default=serialize, indent=4)
     return json_string
