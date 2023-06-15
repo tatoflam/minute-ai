@@ -60,9 +60,9 @@ convert_to_mp3() {
     fi
 
     # segment file into chunks in 25 minutes
-    ffmpeg -i "$output_file" -f segment -segment_time 1500 -c copy "${input_file%.*}_%03d.mp3"
+    ffmpeg -i "$output_file" -f segment -segment_time 360 -c copy "${input_file%.*}_%03d.mp3"
 
-    make_short_audio "${input_file%.*}_000.mp3" 120
+    make_short_audio "${input_file%.*}_000.mp3" 180
 }
 
 remove_temporal_files(){
@@ -161,6 +161,12 @@ deactivate
 remove_temporal_files "${segmented_files[@]}"
 
 end=$(date +%s)
-duration=$(echo "($end - $start) / 60" | bc -l)
+
+if [ $(uname -s) == "Darwin" ]||[ $(uname -s) == "Linux" ]; then
+    duration=$(echo "($end - $start) / 60" | bc -l)
+else
+    duration=$(echo $((($end - $start)/60)))
+fi
+
 duration=$(printf "%.2f" $duration)
 echo "minute.sh completed in $duration minutes!"

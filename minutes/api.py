@@ -1,6 +1,7 @@
 import os
 import openai
 from logging import getLogger
+import time
 
 from prompt import summary_system_content, summary_user_content, \
     summary_chunks_user_content, translation_system_content, \
@@ -44,6 +45,7 @@ def transcribe_files(script_file, filenames, org_lang):
     for filename in filenames:
         transcript = transcribe(filename, org_lang)
         transcripts += transcript + " "
+        time.sleep(3)
 
     with open(script_file, "w") as file:
         file.write(transcripts)

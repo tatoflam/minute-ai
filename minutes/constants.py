@@ -3,6 +3,9 @@ import os
 base_dir = os.path.dirname(__file__)
 logging_conf = os.path.join(base_dir, 'config/logging.json')
 gpt_model = "gpt-3.5-turbo"
+#gpt_model = "gpt-4"
+#gpt_model = "gpt-4-0314"
+
 max_token_length = 4097
 token_overhead = 1000
 whisper_model = "whisper-1"
