@@ -82,14 +82,26 @@ python -V
 - Git Bashを起動する
 - Git Bashで、`cd`でツールのディレクトリに移動。たとえば..
   ```
-  $ cd /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main
+  $ cd /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main  
   ```
+
+
+
+
 
 - 自分が今、どこにいるかを確認するのは、`pwd`コマンド。
   ```
   $ pwd
   /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main
   ```
+
+- １つ上のディレクトリに移動するときは `cd ..`
+  ```
+  $ cd ..
+  $ pwd
+  /c/Users/tato/Downloads/minutes-ai-main
+  ```
+
 
 - 今のディレクトリの配下にあるファイルを確認するのは、`ls`コマンド
   ```
