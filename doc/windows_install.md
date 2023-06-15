@@ -83,56 +83,62 @@ python -V
 - Git Bashを起動する
 - Git Bashで、`cd`でツールのディレクトリに移動。たとえば..
   ```
-  $ cd /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main  
+  cd /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main  
   ```
-
-
-
-
 
 - 自分が今、どこにいるかを確認するのは、`pwd`コマンド。
   ```
-  $ pwd
+  pwd
+  ```
+  (output)
+  ```
   /c/Users/tato/Downloads/minutes-ai-main/minutes-ai-main
   ```
 
-- １つ上のディレクトリに移動するときは `cd ..`
+- １つ上のディレクトリに移動するときは `cd ..`  
   ```
-  $ cd ..
-  $ pwd
-  /c/Users/tato/Downloads/minutes-ai-main
+  cd ..
+  pwd
   ```
-
+  (output)
+  ```
+  /c/Users/tato/Downloads/minutes-ai-main  
+  ```
 
 - 今のディレクトリの配下にあるファイルを確認するのは、`ls`コマンド
   ```
-  $ ls
+  ls
+  ```
+  (output)
+  ```
   LICENSE    data/  log/      minutes.sh*       
   setup.py README.md   minutes/  requirements.txt
   ```
 
 - 上の各ファイルが確認できる場所まで移動したら、以下のコマンドでpythonの仮想環境を作成 (`env`という名前の仮想環境を作る)
   ```
-  $ python -m venv env
+  python -m venv env
   ```
 
 - 仮想環境に入る
 
   ```
-  $ source env/Scripts/activate
-  (env)
+  source env/Scripts/activate
   ```
-
+  (output)
+  ```
+  (env)  
+  ```
 #### 必要なライブラリをインストールする
 
 - 仮想環境に入った状態で `pip`を使って、pythonのライブラリをインストールします
   ```
-  $ pip install -r requirements.txt
+  pip install -r requirements.txt
   ```
 
 - インストールが終わったら、仮想環境から抜ける
   ```
-  $ deactivate
+  deactivate
   ```
 
 これでインストールは完了です。
