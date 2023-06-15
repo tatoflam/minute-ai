@@ -101,6 +101,8 @@ Install requirements on the virtual environment.
 (env)pip install -r requirements.txt  --index-url=https://pypi.org
 ```
 
+あまり詳しくない人向けのWindowsインストール手順は[こちら](doc/windows_install.md)
+
 ## Security
 
 For transcribing, summarizing or translation, this tool call OpenAI API and pass content to the platform.  

@@ -25,6 +25,7 @@
 - [公式サイト](https://www.python.org/downloads/windows/)からWindows版インストーラーをダウンロード
   - Download Windows installer (64-bit)
 - `python-3.xx.x-xxxxx.exe`を起動。最初のページで、`Add python.exe to PATH` にチェックを入れて、ウィザードにしたがってインストール。基本、全部「Next」でOK。
+
 ![python_win_installer](python_win_installer.png)
 
 
